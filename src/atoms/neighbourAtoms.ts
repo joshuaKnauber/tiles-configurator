@@ -146,11 +146,10 @@ export const tileGridAtom = atom((get) => {
     let parentNeighbours = neighbours[parent].map((n) =>
       parseInt(n)
     ) as NeighbourIds;
-    // let [top, right, bottom, left] = rotateNeighboursToMatch(
-    //   parent,
-    //   parentNeighbours
-    // );
-    let [top, right, bottom, left] = parentNeighbours;
+    let [top, right, bottom, left] = rotateNeighboursToMatch(
+      parent,
+      parentNeighbours
+    );
     addNeighboursToGrid(parent, bottom, top, left, right);
   }
   // }

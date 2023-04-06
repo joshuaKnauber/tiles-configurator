@@ -1,13 +1,19 @@
 import { useAtomValue } from "jotai";
 import { Link } from "react-router-dom";
-import { CpuChipIcon } from "@heroicons/react/24/solid";
+import {
+  CogIcon,
+  CpuChipIcon,
+  CursorArrowRippleIcon,
+} from "@heroicons/react/24/solid";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { neighbourAtom, tileGridAtom } from "../../atoms/neighbourAtoms";
 import { invertedRoutingTableAtom } from "../../atoms/routingTableAtoms";
 import { logAtom } from "../../atoms/logAtoms";
 import { tileConfigsAtom, tileTypes } from "../../atoms/tilesAtoms";
+import { activeCoreAtom } from "../../atoms/coreAtoms";
 
 const Overview = () => {
+  const activeCore = useAtomValue(activeCoreAtom);
   const tileGrid = useAtomValue(tileGridAtom);
   console.log(tileGrid);
   const neighbourTable = useAtomValue(neighbourAtom);
@@ -15,6 +21,16 @@ const Overview = () => {
   const log = useAtomValue(logAtom);
   const tiles = useAtomValue(tileConfigsAtom);
   console.log(tiles);
+
+  if (!activeCore?.connected) {
+    return (
+      <div className="flex h-full justify-center items-center">
+        <span className="text-lg font-medium opacity-50">
+          Core not connected
+        </span>
+      </div>
+    );
+  }
 
   return (
     // <TransformWrapper
@@ -25,8 +41,8 @@ const Overview = () => {
     //   disablePadding
     // >
     //   <TransformComponent wrapperClass="select-none min-w-full min-h-full overflow-auto flex relative">
-    <div className="min-w-full min-h-full overflow-auto">
-      <div className="fixed top-2 right-2 w-96 h-96 overflow-auto bg-white p-2 bg-opacity-10 rounded-sm flex flex-col gap-2">
+    <div className="min-w-full min-h-full overflow-auto m-8">
+      {/* <div className="fixed top-2 right-2 w-96 h-96 overflow-auto bg-white p-2 bg-opacity-10 rounded-sm flex flex-col gap-2">
         {log.map((log, i) => (
           <div className="text-xs" key={i}>
             {log}
@@ -50,7 +66,7 @@ const Overview = () => {
           <br />
         </div>
       ))}
-      <br />
+      <br /> */}
       <table className="border-separate border-spacing-2">
         <tbody className="text-center">
           {tileGrid.map((row, i) => (
@@ -75,15 +91,16 @@ const Overview = () => {
                         tile === 1 ? (
                           <CpuChipIcon className="w-10 h-10 fill-amber-400" />
                         ) : (
-                          <div className="flex flex-col">
-                            <span className="opacity-50">{tile}</span>
-                            <span className="opacity-50">
+                          <div className="flex flex-col gap-1 items-center">
+                            {tileType === 1 ? (
+                              <CogIcon className="w-10 h-10 opacity-50" />
+                            ) : (
+                              <CursorArrowRippleIcon className="w-10 h-10 opacity-50" />
+                            )}
+                            {/* <span className="opacity-50 text-xs">
                               {hardwareId || "None"}
                             </span>
-                            <span className="opacity-50">
-                              {typeName}
-                              {tileType}
-                            </span>
+                            <span className="opacity-50 text-xs">{tile}</span> */}
                           </div>
                         )
                       ) : null}

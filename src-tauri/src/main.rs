@@ -186,6 +186,11 @@ fn track_cores(window: Window) {
 fn receive_core_data(window: Window, pid: u16, vid: u16) {
     let api = hidapi::HidApi::new().unwrap();
     let device = api.open(vid, pid).unwrap();
+
+    // thread::sleep(Duration::from_millis(5000));
+
+    // send_data_packet(pid, vid, 255, 0, &[0]);
+
     let mut buf: [u8; 64] = [0; 64];
     let mut count = 0;
     loop {

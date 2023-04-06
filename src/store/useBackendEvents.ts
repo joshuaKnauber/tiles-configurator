@@ -1,23 +1,19 @@
 import { useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { activeCoreIndexAtom, coresAtom } from "../atoms/coreAtoms";
 import store from "./store";
 import useCores from "./useCores";
-import {
-  HardwareReportPayload,
-  NeighbourTable,
-  NeighboursReportPayload,
-  NetworkRequestPayload,
-  TileConfigs,
-} from "../types";
+import { NeighbourTable, TileConfigs } from "../types";
 import { neighbourAtom } from "../atoms/neighbourAtoms";
 import { routingTableAtom } from "../atoms/routingTableAtoms";
 import { logAtom } from "../atoms/logAtoms";
 import { tileConfigsAtom } from "../atoms/tilesAtoms";
+import useTauriEvents from "./useTauriEvents";
 
 const useBackendEvents = () => {
+  const payloads = useTauriEvents();
+
   const cores = useAtomValue(coresAtom);
   const [neighbourTable, setNeighboursState] = useAtom(neighbourAtom);
   const [routingTable, setRoutingTable] = useAtom(routingTableAtom);
@@ -84,24 +80,14 @@ const useBackendEvents = () => {
   };
 
   const updateNeighbours = (
-    neighbourTableTemp: NeighbourTable,
     network_id: string,
     neighbours: [string, string, string, string]
   ) => {
-    log(
-      "updating neighbours of " +
-        network_id +
-        " to " +
-        neighbours +
-        " " +
-        JSON.stringify(neighbourTableTemp)
-    );
-    // return;
     let newRoutingTable = { ...routingTable };
     let newNeighbourTable = JSON.parse(
-      JSON.stringify(neighbourTableTemp)
+      JSON.stringify(neighbourTable)
     ) as NeighbourTable;
-    log("unmodified neighbour table " + JSON.stringify(neighbourTableTemp));
+    log("unmodified neighbour table " + JSON.stringify(neighbourTable));
 
     // find removed ids
     let removedTiles: string[] = [];
@@ -175,16 +161,61 @@ const useBackendEvents = () => {
     setTileConfigs(config);
   };
 
+  const clearStore = async () => {
+    await store.clear();
+    await store.save();
+  };
+
+  useEffect(() => {
+    if (payloads.networkIdPayload) {
+      const { product_id, vendor_id } = payloads.networkIdPayload;
+      log("received network id request");
+      invoke("send_network_id", {
+        productId: product_id,
+        vendorId: vendor_id,
+        networkId: getFreeNetworkId(),
+      });
+      payloads.setNetworkIdPayload(null);
+    }
+  }, [payloads.networkIdPayload, givenNetworkIds]);
+
+  useEffect(() => {
+    if (payloads.hardwareReportPayload) {
+      const { hardware_id, network_id, product_id, vendor_id, tile_type } =
+        payloads.hardwareReportPayload;
+      log("received hardware report from " + hardware_id + " as " + network_id);
+      addToRoutingTable(product_id, vendor_id, hardware_id, network_id);
+      addTileConfig(hardware_id, tile_type);
+      payloads.setHardwareReportPayload(null);
+    }
+  }, [payloads.hardwareReportPayload]);
+
+  useEffect(() => {
+    if (payloads.corePayload) {
+      log("cores changed, refreshing");
+      refreshCores(false);
+      setNeighboursState({
+        "1": ["0", "0", "0", "0"],
+      });
+      payloads.setCorePayload(null);
+    }
+  }, [payloads.corePayload]);
+
+  useEffect(() => {
+    console.log("updated");
+    if (payloads.neighboursPayload) {
+      const { neighbours, network_id } = payloads.neighboursPayload;
+      log("received neighbours report from " + network_id + ":" + neighbours);
+      updateNeighbours(network_id, neighbours);
+      payloads.setNeighboursPayload(null);
+    }
+  }, [payloads.neighboursPayload]);
+
   useEffect(() => {
     if (cores.length && activeCoreIndex === null) {
       setActiveCoreIndex(0);
     }
   }, [cores, activeCoreIndex]);
-
-  const clearStore = async () => {
-    await store.clear();
-    await store.save();
-  };
 
   useEffect(() => {
     log("update listeners " + JSON.stringify(neighbourTable));
@@ -195,95 +226,7 @@ const useBackendEvents = () => {
         "1": ["0", "0", "0", "0"],
       });
     }
-
-    let cleanupListeners = () => {};
-
-    const initializeListeners = async () => {
-      // listen for core changes
-      const connectionListener = (event: any) => {
-        log("cores changed, refreshing");
-        refreshCores(false);
-        log("reset 1");
-        setNeighboursState({
-          "1": ["0", "0", "0", "0"],
-        });
-      };
-      const unlistenConnection = await listen(
-        "connection-change",
-        connectionListener
-      );
-
-      // listen for network id requests
-      const networkIdListener = async (event: any) => {
-        const payload = event.payload as NetworkRequestPayload;
-        log("received network id request");
-        invoke("send_network_id", {
-          productId: payload.product_id,
-          vendorId: payload.vendor_id,
-          networkId: getFreeNetworkId(),
-        });
-      };
-      const unlistenNetworkId = await listen(
-        "request-network-id",
-        networkIdListener
-      );
-
-      // listen for reported hardware ids
-      const hardwareReportListener = async (event: any) => {
-        log(
-          "received hardware report from " +
-            event.payload.hardware_id +
-            " as " +
-            event.payload.network_id
-        );
-        const { hardware_id, network_id, product_id, vendor_id, tile_type } =
-          event.payload as HardwareReportPayload;
-        addToRoutingTable(product_id, vendor_id, hardware_id, network_id);
-        await addTileConfig(hardware_id, tile_type);
-      };
-      const unlistenHardwareReport = await listen(
-        "report-hardware-id",
-        hardwareReportListener
-      );
-
-      // listen for reported neighbours
-      const neighboursListener = (event: any) => {
-        log(
-          "received neighbours report from " +
-            event.payload.network_id +
-            ":" +
-            event.payload.neighbours
-        );
-        const { neighbours, network_id } =
-          event.payload as NeighboursReportPayload;
-        log("update neighbours from current " + JSON.stringify(neighbourTable));
-        updateNeighbours(neighbourTable, network_id, neighbours);
-        // setNeighboursState((prevState) => {
-        //   log("update neighbours from previous " + JSON.stringify(prevState));
-        //   const newNeighbours = { ...prevState };
-        //   newNeighbours[network_id] = neighbours;
-        //   return newNeighbours;
-        // });
-      };
-      const unlistenNeighbours = await listen(
-        "report-neighbours",
-        neighboursListener
-      );
-
-      cleanupListeners = () => {
-        unlistenConnection();
-        unlistenNetworkId();
-        unlistenHardwareReport();
-        unlistenNeighbours();
-      };
-    };
-
-    initializeListeners();
-
-    return () => {
-      cleanupListeners();
-    };
-  }, [givenNetworkIds, neighbourTable, routingTable, updateNeighbours]);
+  }, [givenNetworkIds]);
 
   useEffect(() => {
     clearStore();
