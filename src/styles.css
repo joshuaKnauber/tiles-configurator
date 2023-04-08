@@ -33,3 +33,11 @@ body {
     transform: scale(1);
   }
 }
+
+.polka {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.3) 1px,
+    transparent 0
+  );
+  background-size: 1.75rem 1.75rem;
+}

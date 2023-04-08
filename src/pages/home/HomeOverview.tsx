@@ -13,6 +13,7 @@ import { activeCoreAtom } from "../../atoms/coreAtoms";
 import DebugOverlay from "./components/DebugOverlay";
 import TablesOverlay from "./components/TablesOverlay";
 import { devModeAtom } from "../../atoms/devModeAtoms";
+import { useState } from "react";
 
 const Overview = () => {
   const activeCore = useAtomValue(activeCoreAtom);
@@ -20,6 +21,8 @@ const Overview = () => {
   const invertedRoutingTable = useAtomValue(invertedRoutingTableAtom);
   const tiles = useAtomValue(tileConfigsAtom);
   const devMode = useAtomValue(devModeAtom);
+
+  const [pos, setPos] = useState<[number, number]>([0, 0]);
 
   if (!activeCore?.connected) {
     return (
@@ -32,21 +35,26 @@ const Overview = () => {
   }
 
   return (
-    <TransformWrapper
-      limitToBounds={false}
-      centerOnInit
-      minScale={1}
-      maxScale={1}
-      disablePadding
-    >
-      <TransformComponent wrapperClass="select-none min-w-full min-h-full overflow-auto flex relative">
-        <div className="min-w-full min-h-full overflow-hidden">
-          <div className="flex flex-col fixed top-2 right-2 gap-2 -z-1">
-            <DebugOverlay />
-            <TablesOverlay />
-          </div>
-
-          <table className="border-separate border-spacing-2">
+    <>
+      <div className="flex flex-col fixed top-2 right-2 gap-2 -z-1">
+        <DebugOverlay />
+        <TablesOverlay />
+      </div>
+      <TransformWrapper
+        limitToBounds={false}
+        centerOnInit
+        minScale={1}
+        maxScale={1}
+        disablePadding
+        onPanning={(e) => setPos([e.state.positionX, e.state.positionY])}
+      >
+        <TransformComponent
+          wrapperClass="select-none w-full h-full overflow-hidden relative polka"
+          wrapperStyle={{
+            backgroundPosition: `${pos[0]}px ${pos[1]}px`,
+          }}
+        >
+          <table className="border-separate border-spacing-7">
             <tbody className="text-center">
               {tileGrid.map((row, i) => (
                 <tr key={i}>
@@ -56,7 +64,7 @@ const Overview = () => {
                     return (
                       <td
                         key={`${i}_${j}`}
-                        className={`overflow-hidden rounded-xl w-28 h-28 min-w-[7rem] min-h-[7rem] hover:scale-105 bg-zinc-800 border border-zinc-600 cursor-pointer transition-all scale-in ${
+                        className={`overflow-hidden rounded-lg w-28 h-28 hover:scale-105 bg-zinc-800 border border-zinc-600 cursor-pointer transition-all scale-in ${
                           tile ? "" : "pointer-events-none invisible"
                         }`}
                       >
@@ -95,9 +103,9 @@ const Overview = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      </TransformComponent>
-    </TransformWrapper>
+        </TransformComponent>
+      </TransformWrapper>
+    </>
   );
 };
 
