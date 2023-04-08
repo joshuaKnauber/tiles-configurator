@@ -40,6 +40,14 @@ struct NeighboursPayload {
     neighbours: Vec<String>,
 }
 
+#[derive(Clone, serde::Serialize)]
+struct DataReportPayload {
+    product_id: u16,
+    vendor_id: u16,
+    network_id: u8,
+    data: Vec<u8>,
+}
+
 #[tauri::command]
 fn get_connected_cores() -> Vec<(u16, u16)> {
     let hid_api = hidapi::HidApi::new().unwrap();
@@ -187,10 +195,6 @@ fn receive_core_data(window: Window, pid: u16, vid: u16) {
     let api = hidapi::HidApi::new().unwrap();
     let device = api.open(vid, pid).unwrap();
 
-    // thread::sleep(Duration::from_millis(5000));
-
-    // send_data_packet(pid, vid, 255, 0, &[0]);
-
     let mut buf: [u8; 64] = [0; 64];
     let mut count = 0;
     loop {
@@ -220,7 +224,7 @@ fn process_data(window: Window, pid: u16, vid: u16, data: &[u8; 64]) {
 
     match data_type {
         17 => { // general data packet
-            process_data_packet(pid, vid, sender_network_id, payload);
+            process_data_packet(window.clone(), pid, vid, sender_network_id, payload);
         },
         85 => { // give me a network id
             window.emit_all("request-network-id", NetworkRequestPayload{vendor_id: vid, product_id: pid}).unwrap();
@@ -274,5 +278,6 @@ fn process_hardware_report(window: Window, pid: u16, vid: u16, network_id: u8, p
     window.emit_all("report-hardware-id", HardwareReportPayload{ hardware_id, tile_type, product_id: pid, vendor_id: vid, network_id }).unwrap();
 }
 
-fn process_data_packet(pid: u16, vid: u16, network_id: u8, payload: &[u8]) {
+fn process_data_packet(window: Window, pid: u16, vid: u16, network_id: u8, payload: &[u8]) {
+    window.emit_all("report-input-data", DataReportPayload{ product_id: pid, vendor_id: vid, network_id, data: payload.to_vec() }).unwrap();
 }

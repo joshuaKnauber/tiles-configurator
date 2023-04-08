@@ -20,6 +20,13 @@ export type NeighboursReportPayload = {
   neighbours: [string, string, string, string];
 };
 
+export type DataReportPayload = {
+  product_id: number;
+  vendor_id: number;
+  network_id: number;
+  data: number[];
+};
+
 export type Core = {
   vendorId: number;
   productId: number;
