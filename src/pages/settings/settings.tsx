@@ -1,30 +1,34 @@
 import { Switch } from "@headlessui/react";
+import { useAtom } from "jotai";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { devModeAtom } from "../../atoms/devModeAtoms";
+import { ChevronLeftIcon } from "@heroicons/react/24/solid";
+import ToggleOption from "./components/ToggleOption";
 
 const SettingsPage = () => {
-  const navigtate = useNavigate();
+  const navigate = useNavigate();
 
-  const [enabled, setEnabled] = useState(false);
+  const [devMode, setDevMode] = useAtom(devModeAtom);
 
   return (
-    <div className="bg-zinc-900 text-white h-full">
-      <button onClick={() => navigtate(-1)}>Go Back</button>
-      <span>Settings</span>
-      <Switch
-        checked={enabled}
-        onChange={setEnabled}
-        className={`${
-          enabled ? "bg-blue-600" : "bg-gray-200"
-        } relative inline-flex h-6 w-11 items-center rounded-full`}
-      >
-        <span className="sr-only">Enable notifications</span>
-        <span
-          className={`${
-            enabled ? "translate-x-6" : "translate-x-1"
-          } inline-block h-4 w-4 transform rounded-full bg-white transition`}
+    <div className="bg-zinc-900 text-white h-full flex flex-col divide-y-2 divide-zinc-800 select-none">
+      <div className="flex flex-row py-2 px-4">
+        <button
+          className="flex flex-row gap-2 items-center py-1 px-2 pr-3 rounded-full hover:bg-zinc-800 transition-all"
+          onClick={() => navigate(-1)}
+        >
+          <ChevronLeftIcon className="w-4 h-4" />
+          <span className="font-medium">Settings</span>
+        </button>
+      </div>
+      <div className="flex-grow px-4 py-4">
+        <ToggleOption
+          title="Developer Mode"
+          value={devMode}
+          onChange={setDevMode}
         />
-      </Switch>
+      </div>
     </div>
   );
 };

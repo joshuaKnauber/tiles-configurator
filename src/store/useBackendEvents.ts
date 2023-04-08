@@ -226,9 +226,18 @@ const useBackendEvents = () => {
         "1": ["0", "0", "0", "0"],
       });
     }
-  }, [givenNetworkIds]);
+  }, [givenNetworkIds, cores, neighbourTable]);
 
   useEffect(() => {
+    // disable context menu
+    const disableContextMenu = (event: Event) => {
+      if (!import.meta.env.DEV) {
+        event.preventDefault();
+      }
+    };
+    document.addEventListener("contextmenu", disableContextMenu);
+
+    // temporary TODO: remove
     clearStore();
 
     // initialize cores
@@ -236,6 +245,10 @@ const useBackendEvents = () => {
 
     // load tile configs
     loadConfigs();
+
+    return () => {
+      document.removeEventListener("contextmenu", disableContextMenu);
+    };
   }, []);
 };
 

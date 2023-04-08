@@ -35,6 +35,7 @@ const useCores = () => {
     }
     const connectedCores = (await invoke("get_connected_cores")) as CoreIds[];
     const current = await getCores();
+    console.log(current, connectedCores);
 
     const newCores: Core[] = [...current];
     newCores.forEach((core) => (core.connected = false));
