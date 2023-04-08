@@ -36,7 +36,7 @@ const Overview = () => {
 
   return (
     <>
-      <div className="flex flex-col fixed top-2 right-2 gap-2 -z-1">
+      <div className="flex flex-col fixed top-2 right-2 gap-2 z-10">
         <DebugOverlay />
         <TablesOverlay />
       </div>
@@ -51,7 +51,7 @@ const Overview = () => {
         <TransformComponent
           wrapperClass="select-none w-full h-full overflow-hidden relative polka"
           wrapperStyle={{
-            backgroundPosition: `${pos[0]}px ${pos[1]}px`,
+            backgroundPosition: `calc(${pos[0]}px - .25rem) calc(${pos[1]}px - .25rem)`,
           }}
         >
           <table className="border-separate border-spacing-7">
@@ -64,7 +64,7 @@ const Overview = () => {
                     return (
                       <td
                         key={`${i}_${j}`}
-                        className={`overflow-hidden rounded-lg w-28 h-28 hover:scale-105 bg-zinc-800 border border-zinc-600 cursor-pointer transition-all scale-in ${
+                        className={`overflow-hidden rounded-xl w-32 h-32 hover:scale-105 bg-zinc-800 border border-zinc-600 cursor-pointer transition-all scale-in ${
                           tile ? "" : "pointer-events-none invisible"
                         }`}
                       >
