@@ -31,11 +31,9 @@ const TileView = ({ pos }: TileViewProps) => {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  console.log(tileGrid);
-
   return (
     <TransformComponent
-      wrapperClass="select-none w-full h-full overflow-hidden relative polka"
+      wrapperClass="select-none w-full h-full min-w-full min-h-full overflow-hidden relative polka"
       wrapperStyle={{
         backgroundPosition: `calc(${pos[0]}px - .25rem) calc(${pos[1]}px - .25rem)`,
       }}
@@ -48,7 +46,7 @@ const TileView = ({ pos }: TileViewProps) => {
                 return (
                   <td
                     key={`${i}_${j}`}
-                    className={`overflow-hidden rounded-xl w-32 h-32 hover:scale-105 bg-zinc-800 border border-zinc-600 cursor-pointer transition-all scale-in ${
+                    className={`overflow-hidden rounded-xl w-32 h-32 hover:scale-105 bg-zinc-900 border border-zinc-600 cursor-pointer transition-all scale-in ${
                       tile ? "" : "pointer-events-none invisible"
                     }`}
                   >

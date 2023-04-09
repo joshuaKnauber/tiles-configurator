@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { activeCoreIndexAtom, coresAtom } from "../atoms/coreAtoms";
 import store from "./store";
 import useCores from "./useCores";
-import { NeighbourTable, TileConfigs } from "../types";
+import { NeighbourTable, RoutingTable, TileConfigs } from "../types";
 import { neighbourAtom } from "../atoms/neighbourAtoms";
 import { routingTableAtom } from "../atoms/routingTableAtoms";
 import { logAtom } from "../atoms/logAtoms";
@@ -15,28 +15,52 @@ const useBackendEvents = () => {
   const payloads = useTauriEvents();
 
   const cores = useAtomValue(coresAtom);
-  const [neighbourTable, setNeighboursState] = useAtom(neighbourAtom);
+  const [neighbourTable, setNeighbours] = useAtom(neighbourAtom);
   const [routingTable, setRoutingTable] = useAtom(routingTableAtom);
   const setLog = useSetAtom(logAtom);
   const [activeCoreIndex, setActiveCoreIndex] = useAtom(activeCoreIndexAtom);
   const setTileConfigs = useSetAtom(tileConfigsAtom);
   const { refreshCores } = useCores();
 
-  const [givenNetworkIds, setGivenNetworkIds] = useState<number[]>([]);
+  const givenNetworkIds = useRef<number[]>([]);
 
-  useEffect(() => {
-    log("-- NeighbourTable updated: " + JSON.stringify(neighbourTable));
-  }, [neighbourTable]);
+  const updateRoutingTable = (
+    removeFromRoutingTable: (string | number)[],
+    addToRoutingTable: [string, number][]
+  ) => {
+    setRoutingTable((curr) => {
+      let newRoutingTable = { ...curr };
+      removeFromRoutingTable.forEach((key) => {
+        if (typeof key === "string" && key in newRoutingTable) {
+          delete newRoutingTable[key];
+        } else if (typeof key === "number") {
+          const hardwareId = Object.keys(newRoutingTable).find(
+            (hardwareId) => newRoutingTable[hardwareId] === key
+          );
+          if (hardwareId) {
+            delete newRoutingTable[hardwareId];
+          }
+        }
+      });
+      addToRoutingTable.forEach(([key, value]) => {
+        newRoutingTable[key] = value;
+      });
+      store.set("routingTable", newRoutingTable);
+      store.save();
+      log(
+        "update routing table from " +
+          JSON.stringify(curr) +
+          " to " +
+          JSON.stringify(newRoutingTable)
+      );
+      return newRoutingTable;
+    });
+  };
 
-  const setNeighbours = (newNeighbourTable: NeighbourTable) => {
-    log(
-      "-- Updating neighbours1: " +
-        JSON.stringify(newNeighbourTable) +
-        " " +
-        JSON.stringify(neighbourTable)
-    );
-    setNeighboursState(newNeighbourTable);
-    log("-- Updating neighbours2: " + JSON.stringify(neighbourTable));
+  const resetRoutingTable = () => {
+    setRoutingTable({});
+    store.set("routingTable", {});
+    store.save();
   };
 
   const log = (message: string) => {
@@ -48,12 +72,14 @@ const useBackendEvents = () => {
     const takenNetworkIds = Object.values(routingTable);
     let nextFreeNetworkId = 2;
     while (
-      [...takenNetworkIds, ...givenNetworkIds].includes(nextFreeNetworkId)
+      [...takenNetworkIds, ...givenNetworkIds.current].includes(
+        nextFreeNetworkId
+      )
     ) {
       nextFreeNetworkId++;
     }
     log("gave away network id " + nextFreeNetworkId.toString());
-    setGivenNetworkIds([...givenNetworkIds, nextFreeNetworkId]);
+    givenNetworkIds.current = [...givenNetworkIds.current, nextFreeNetworkId];
     return nextFreeNetworkId;
   };
 
@@ -65,83 +91,81 @@ const useBackendEvents = () => {
   ) => {
     let networkIdExists = Object.values(routingTable).includes(network_id);
     if (networkIdExists && routingTable[hardware_id] !== network_id) {
-      log("reset network id");
-      invoke("reset_network_id", { product_id, vendor_id, network_id });
+      log("reset network id " + network_id.toString());
+      invoke("reset_network_id", {
+        productId: product_id,
+        vendorId: vendor_id,
+        networkId: network_id,
+      });
       return;
     }
 
-    setGivenNetworkIds(
-      givenNetworkIds.filter((id) => id !== parseInt(network_id.toString()))
+    givenNetworkIds.current = givenNetworkIds.current.filter(
+      (id) => id !== network_id
     );
 
-    let newRoutingTable = { ...routingTable };
-    newRoutingTable[hardware_id] = network_id;
-    setRoutingTable(newRoutingTable);
+    updateRoutingTable([], [[hardware_id, network_id]]);
   };
 
   const updateNeighbours = (
-    network_id: string,
-    neighbours: [string, string, string, string]
+    network_id: number,
+    neighbours: [number, number, number, number]
   ) => {
-    let newRoutingTable = { ...routingTable };
+    let removeFromRoutingTable: (string | number)[] = [];
     let newNeighbourTable = JSON.parse(
       JSON.stringify(neighbourTable)
     ) as NeighbourTable;
     log("unmodified neighbour table " + JSON.stringify(neighbourTable));
 
-    // find removed ids
-    let removedTiles: string[] = [];
-    if (newNeighbourTable[network_id]) {
-      for (let tile of neighbourTable[network_id]) {
-        if (!neighbours.includes(tile)) {
-          removedTiles.push(tile);
-          delete newNeighbourTable[tile];
-          let routingTableIndex = Object.values(newRoutingTable).indexOf(
-            parseInt(tile)
-          );
-          if (routingTableIndex !== -1)
-            delete newRoutingTable[
-              Object.keys(newRoutingTable)[routingTableIndex]
-            ];
+    // reset if only core is connected
+    if (network_id === 1 && neighbours.every((n) => n === 0)) {
+      log("reset neighbour table because only core is connected");
+      setNeighbours({
+        "1": [0, 0, 0, 0],
+      });
+      resetRoutingTable();
+      givenNetworkIds.current = [];
+    } else {
+      // find removed ids
+      let removedTiles: number[] = [];
+      if (newNeighbourTable[network_id]) {
+        for (let tile of neighbourTable[network_id]) {
+          if (!neighbours.includes(tile) && tile !== 1) {
+            removedTiles.push(tile);
+            delete newNeighbourTable[tile];
+            removeFromRoutingTable.push(tile);
+          }
         }
       }
-    }
 
-    // add new network id entry
-    newNeighbourTable[network_id] = neighbours;
+      // add new network id entry
+      newNeighbourTable[network_id] = neighbours;
 
-    // update neighbours of removed ids
-    console.log("removed", removedTiles);
-    for (let removed of removedTiles) {
+      // update neighbours of removed ids
+      for (let removed of removedTiles) {
+        for (let neighbour of Object.keys(newNeighbourTable)) {
+          if (newNeighbourTable[neighbour].includes(removed)) {
+            let index = newNeighbourTable[neighbour].indexOf(removed);
+            newNeighbourTable[neighbour][index] = 0;
+          }
+        }
+      }
+
+      // remove empty that aren't 1
       for (let neighbour of Object.keys(newNeighbourTable)) {
-        if (newNeighbourTable[neighbour].includes(removed)) {
-          let index = newNeighbourTable[neighbour].indexOf(removed);
-          newNeighbourTable[neighbour][index] = "0";
+        if (
+          neighbour !== "1" &&
+          newNeighbourTable[neighbour].every((tile) => tile === 0)
+        ) {
+          delete newNeighbourTable[neighbour];
+          removeFromRoutingTable.push(parseInt(neighbour));
         }
       }
-    }
 
-    // remove empty that aren't 1
-    for (let neighbour of Object.keys(newNeighbourTable)) {
-      if (
-        neighbour !== "1" &&
-        newNeighbourTable[neighbour].every((tile) => tile === "0")
-      ) {
-        delete newNeighbourTable[neighbour];
-        let routingTableIndex = Object.values(newRoutingTable).indexOf(
-          parseInt(neighbour)
-        );
-        if (routingTableIndex !== -1)
-          delete newRoutingTable[
-            Object.keys(newRoutingTable)[routingTableIndex]
-          ];
-      }
+      log("updated neighbour table to " + JSON.stringify(newNeighbourTable));
+      setNeighbours(newNeighbourTable);
+      updateRoutingTable(removeFromRoutingTable, []);
     }
-
-    log("updated neighbour table to " + JSON.stringify(newNeighbourTable));
-    log("updated routing table to " + JSON.stringify(newRoutingTable));
-    setNeighbours(newNeighbourTable);
-    setRoutingTable(newRoutingTable);
   };
 
   const addTileConfig = async (hardwareId: string, tileType: number) => {
@@ -168,6 +192,7 @@ const useBackendEvents = () => {
 
   useEffect(() => {
     if (payloads.networkIdPayload) {
+      payloads.setNetworkIdPayload(null);
       const { product_id, vendor_id } = payloads.networkIdPayload;
       log("received network id request");
       invoke("send_network_id", {
@@ -175,41 +200,43 @@ const useBackendEvents = () => {
         vendorId: vendor_id,
         networkId: getFreeNetworkId(),
       });
-      payloads.setNetworkIdPayload(null);
     }
-  }, [payloads.networkIdPayload, givenNetworkIds]);
+  }, [payloads.networkIdPayload]);
 
   useEffect(() => {
     if (payloads.hardwareReportPayload) {
+      payloads.setHardwareReportPayload(null);
       const { hardware_id, network_id, product_id, vendor_id, tile_type } =
         payloads.hardwareReportPayload;
       log("received hardware report from " + hardware_id + " as " + network_id);
       addToRoutingTable(product_id, vendor_id, hardware_id, network_id);
       addTileConfig(hardware_id, tile_type);
-      payloads.setHardwareReportPayload(null);
     }
-  }, [payloads.hardwareReportPayload]);
+  }, [payloads.hardwareReportPayload, routingTable]);
 
   useEffect(() => {
     if (payloads.corePayload) {
-      log("cores changed, refreshing");
-      refreshCores(false);
-      setNeighboursState({
-        "1": ["0", "0", "0", "0"],
-      });
       payloads.setCorePayload(null);
+      log("cores changed, refreshing");
+      refreshCores();
+      setNeighbours({
+        1: [0, 0, 0, 0],
+      });
+      resetRoutingTable();
     }
   }, [payloads.corePayload]);
 
   useEffect(() => {
-    console.log("updated");
     if (payloads.neighboursPayload) {
+      payloads.setNeighboursPayload(null);
       const { neighbours, network_id } = payloads.neighboursPayload;
+      if (neighbours.every((tile) => tile === 0)) {
+        log("- - - - - - - - - - - - - - - ");
+      }
       log("received neighbours report from " + network_id + ":" + neighbours);
       updateNeighbours(network_id, neighbours);
-      payloads.setNeighboursPayload(null);
     }
-  }, [payloads.neighboursPayload]);
+  }, [payloads.neighboursPayload, routingTable, neighbourTable]);
 
   useEffect(() => {
     if (cores.length && activeCoreIndex === null) {
@@ -218,12 +245,11 @@ const useBackendEvents = () => {
   }, [cores, activeCoreIndex]);
 
   useEffect(() => {
-    log("update listeners " + JSON.stringify(neighbourTable));
     // initialize neighbours
     if (cores.length && Object.keys(neighbourTable).length === 0) {
       log("Setting initial neighbours state");
-      setNeighboursState({
-        "1": ["0", "0", "0", "0"],
+      setNeighbours({
+        "1": [0, 0, 0, 0],
       });
     }
   }, [givenNetworkIds, cores, neighbourTable]);
@@ -238,10 +264,10 @@ const useBackendEvents = () => {
     document.addEventListener("contextmenu", disableContextMenu);
 
     // temporary TODO: remove
-    clearStore();
+    // clearStore();
 
     // initialize cores
-    refreshCores(false);
+    refreshCores();
 
     // load tile configs
     loadConfigs();

@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai";
 import { Link, useParams } from "react-router-dom";
 import { invertedRoutingTableAtom } from "../../atoms/routingTableAtoms";
 import { tileConfigsAtom, tileTypesPretty } from "../../atoms/tilesAtoms";
+import SettingsEncoder from "./components/TileSettings/SettingsEncoder";
 
 const Tile = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +30,11 @@ const Tile = () => {
           }`}</span>
         </Link>
       </div>
-      <div className="flex-grow flex flex-col px-4"></div>
+      {hardwareId && (
+        <div className="flex-grow flex flex-col px-4">
+          {tileType === 1 && <SettingsEncoder hardwareId={hardwareId} />}
+        </div>
+      )}
     </div>
   );
 };

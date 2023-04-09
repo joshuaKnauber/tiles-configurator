@@ -10,10 +10,10 @@ const TablesOverlay = () => {
 
   if (!devMode) return null;
   return (
-    <div className="resize-y w-96 h-52 overflow-auto bg-white p-2 bg-opacity-25 rounded-sm flex flex-col gap-2">
+    <div className="resize-y w-96 h-52 overflow-auto bg-zinc-800 p-4 rounded-md flex flex-col gap-3 font-mono">
       {Object.keys(neighbourTable).map((key) => (
         <div key={key}>
-          <span>
+          <span className="text-sm leading-4">
             {key} : {neighbourTable[key].join(", ")}
           </span>
           <br />
@@ -22,7 +22,7 @@ const TablesOverlay = () => {
       <br />
       {Object.entries(invertedRoutingTable).map(([key, value]) => (
         <div key={key}>
-          <span>
+          <span className="text-sm leading-4">
             {key}: {value}
           </span>
           <br />

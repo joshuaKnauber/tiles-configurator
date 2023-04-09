@@ -8,9 +8,14 @@ const DebugOverlay = () => {
 
   if (!devMode) return null;
   return (
-    <div className="resize-y w-96 h-52 overflow-auto bg-white p-2 bg-opacity-25 rounded-sm flex flex-col gap-2">
+    <div className="resize-y w-96 h-52 overflow-auto bg-zinc-800 py-4 rounded-md flex flex-col gap-2 font-mono">
       {log.map((log, i) => (
-        <div className="text-xs" key={i}>
+        <div
+          className={`text-xs leading-4 px-4 py-1 bg-opacity-5 ${
+            i % 2 ? "bg-white" : "bg-transparent"
+          }`}
+          key={i}
+        >
           {log}
         </div>
       ))}

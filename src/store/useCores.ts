@@ -8,8 +8,6 @@ import { coresAtom } from "../atoms/coreAtoms";
 const useCores = () => {
   const setCores = useSetAtom(coresAtom);
 
-  const [refreshingCores, setRefreshingCores] = useState<boolean>(false);
-
   const updateCores = async (cores: Core[]) => {
     store.set("cores", cores);
     store.save();
@@ -29,10 +27,7 @@ const useCores = () => {
     return core || null;
   };
 
-  const refreshCores = async (animate: boolean = true) => {
-    if (animate) {
-      setRefreshingCores(true);
-    }
+  const refreshCores = async () => {
     const connectedCores = (await invoke("get_connected_cores")) as CoreIds[];
     const current = await getCores();
     console.log(current, connectedCores);
@@ -58,9 +53,6 @@ const useCores = () => {
     }
 
     await updateCores(newCores);
-    setTimeout(() => {
-      setRefreshingCores(false);
-    }, 200);
   };
 
   const deleteCores = async () => {
@@ -75,7 +67,6 @@ const useCores = () => {
     getCores,
     setCoreName,
     refreshCores,
-    refreshingCores,
     deleteCores,
   };
 };

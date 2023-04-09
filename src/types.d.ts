@@ -16,8 +16,8 @@ export type HardwareReportPayload = {
 export type NeighboursReportPayload = {
   product_id: number;
   vendor_id: number;
-  network_id: string;
-  neighbours: [string, string, string, string];
+  network_id: number;
+  neighbours: [number, number, number, number];
 };
 
 export type DataReportPayload = {
@@ -43,7 +43,7 @@ export type InvertedRoutingTable = {
 };
 
 export type NeighbourTable = {
-  [key: string]: [string, string, string, string];
+  [key: string]: [number, number, number, number];
 };
 
 export type NeighbourIds = [number, number, number, number];
@@ -51,6 +51,7 @@ export type NeighbourIds = [number, number, number, number];
 export type TileConfigs = {
   [key: string]: {
     type: number;
+    [key: string]: any;
   };
 };
 

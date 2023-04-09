@@ -25,6 +25,7 @@ const Tile = ({ id }: TileProps) => {
   const tileType = tiles[hardwareId]?.type || 0;
 
   // encoder tile state
+  const [encoderPressed, setEncoderPressed] = useState<boolean>(false);
   const [encoderRotation, setEncoderRotation] = useState<number>(0);
 
   // button tile state
@@ -33,6 +34,9 @@ const Tile = ({ id }: TileProps) => {
 
   const handleEncoderRotation = (rotation: number) => {
     setEncoderRotation((curr) => curr + rotation);
+  };
+  const handleEncoderPress = (pressed: boolean) => {
+    setEncoderPressed(pressed);
   };
 
   const handleButtonPresses = (btn1: boolean | null, btn2: boolean | null) => {
@@ -46,12 +50,15 @@ const Tile = ({ id }: TileProps) => {
       if (network_id === id) {
         switch (tileType) {
           case 1: // encoder
-            handleEncoderRotation(data[0] === 2 ? 1 : -1);
+            if (data[0] === 0 || data[0] === 1)
+              handleEncoderPress(data[0] === 0 ? true : false);
+            else if (data[0] === 2 || data[0] === 3)
+              handleEncoderRotation(data[0] === 2 ? 1 : -1);
             break;
           case 2: // button
             handleButtonPresses(
-              data[0] === 4 ? true : data[0] === 5 ? false : null,
-              data[0] === 6 ? true : data[0] === 7 ? false : null
+              data[0] === 0 ? true : data[0] === 1 ? false : null,
+              data[0] === 2 ? true : data[0] === 3 ? false : null
             );
             break;
           default:
@@ -79,28 +86,26 @@ const Tile = ({ id }: TileProps) => {
             {tileType === 1 ? (
               <>
                 <CogIcon
-                  className="w-14 h-14 opacity-50 transition-all"
+                  className={`w-14 h-14 transition-all ${
+                    encoderPressed ? "fill-zinc-700" : "fill-zinc-500"
+                  }`}
                   style={{
                     transform: `rotate(${encoderRotation * 45}deg)`,
                   }}
                 />
               </>
             ) : (
-              <div className="flex flex-row items-center gap-3">
-                <div className="w-9 h-9 rounded-md bg-zinc-900 flex items-center justify-center">
-                  <div
-                    className={`w-6 h-6 rounded-full transition-all ${
-                      btn1Pressed ? "bg-zinc-400" : "bg-zinc-600"
-                    }`}
-                  ></div>
-                </div>
-                <div className="w-9 h-9 rounded-md bg-zinc-900 flex items-center justify-center">
-                  <div
-                    className={`w-6 h-6 rounded-full transition-all ${
-                      btn2Pressed ? "bg-zinc-400" : "bg-zinc-600"
-                    }`}
-                  ></div>
-                </div>
+              <div className="flex flex-row items-center gap-4">
+                <div
+                  className={`w-8 h-8 rounded-full transition-all border-4 border-zinc-800 ${
+                    btn1Pressed ? "bg-zinc-700" : "bg-zinc-500"
+                  }`}
+                ></div>
+                <div
+                  className={`w-8 h-8 rounded-full transition-all border-4 border-zinc-800 ${
+                    btn2Pressed ? "bg-zinc-700" : "bg-zinc-500"
+                  }`}
+                ></div>
               </div>
             )}
             {devMode && (

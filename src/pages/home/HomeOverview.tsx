@@ -13,8 +13,8 @@ const Overview = () => {
 
   if (!activeCore?.connected) {
     return (
-      <div className="flex h-full justify-center items-center">
-        <span className="text-lg font-medium opacity-50">
+      <div className="flex flex-col h-full justify-center items-center polka">
+        <span className="text-lg font-medium opacity-50 select-none">
           Core not connected
         </span>
       </div>
