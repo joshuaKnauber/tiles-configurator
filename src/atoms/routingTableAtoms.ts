@@ -7,7 +7,7 @@ export const invertedRoutingTableAtom = atom((get) => {
   const routingTable = get(routingTableAtom);
   const inverted: InvertedRoutingTable = {};
   Object.entries(routingTable).forEach(([hardwareId, networkId]) => {
-    inverted[networkId] = hardwareId;
+    inverted[networkId.toString()] = hardwareId;
   });
   return inverted;
 });

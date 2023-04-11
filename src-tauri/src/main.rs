@@ -1,6 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod key_helper;
+use key_helper::run_key_string;
+
 use std::path::PathBuf;
 use std::time::Duration;
 use std::thread;
@@ -8,8 +11,6 @@ use std::process::Command;
 
 use rand::Rng;
 use serde_json::Value;
-
-use enigo::*;
 
 use tauri::{Wry, AppHandle};
 use tauri::{CustomMenuItem, SystemTray, SystemTrayMenu, SystemTrayMenuItem, SystemTrayEvent, Manager, WindowEvent, Window, UserAttentionType};
@@ -304,6 +305,14 @@ fn find_hardware_id(routing_table: &serde_json::Value, network_id: u64) -> Optio
         .map(|(key, _value)| key.as_str())
 }
 
+fn run_key_string_if_present(config: &serde_json::Map<String, Value>, key: &str) {
+    if let Some(value) = config.get(key) {
+        if let Some(key_str) = value.as_str() {
+            run_key_string(key_str);
+        }
+    }
+}
+
 fn process_data_packet(app_handle: AppHandle, window: Window, pid: u16, vid: u16, network_id: u8, payload: &[u8]) {
     window.emit_all("report-input-data", DataReportPayload{ product_id: pid, vendor_id: vid, network_id, data: payload.to_vec() }).unwrap();
 
@@ -344,24 +353,37 @@ fn process_data_packet(app_handle: AppHandle, window: Window, pid: u16, vid: u16
                     let action = payload[0];
                     match action {
                         0 => { // button pressed
-                            // let exe_path = config["clickPath"].as_str().unwrap();
-                            let mut enigo = Enigo::new();
-                            enigo.key_click(Key::VolumeMute);
+                            run_key_string_if_present(&config, "down");
                         },
                         1 => { // button released
+                            run_key_string_if_present(&config, "up");
                         },
                         2 => { // encoder right
-                            let mut enigo = Enigo::new();
-                            enigo.key_click(Key::VolumeUp);
+                            run_key_string_if_present(&config, "right");
                         },
                         3 => { // encoder left
-                            let mut enigo = Enigo::new();
-                            enigo.key_click(Key::VolumeDown);
+                            run_key_string_if_present(&config, "left");
                         },
                         _ => println!("unknown action: {}", action)
                     }
                 },
                 2 => { // button
+                    let action = payload[0];
+                    match action {
+                        0 => { // button one pressed
+                            run_key_string_if_present(&config, "one-down");
+                        },
+                        1 => { // button one released
+                            run_key_string_if_present(&config, "one-up");
+                        },
+                        2 => { // button two pressed
+                            run_key_string_if_present(&config, "two-down");
+                        },
+                        3 => { // button two released
+                            run_key_string_if_present(&config, "two-up");
+                        },
+                        _ => println!("unknown action: {}", action)
+                    }
                 }
                 _ => println!("unknown data type: {}", data_type)
             }

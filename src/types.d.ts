@@ -39,7 +39,7 @@ export type RoutingTable = {
 };
 
 export type InvertedRoutingTable = {
-  [key: number]: string;
+  [key: string]: string;
 };
 
 export type NeighbourTable = {

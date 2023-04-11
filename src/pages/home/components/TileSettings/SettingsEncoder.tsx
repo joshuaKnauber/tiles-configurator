@@ -1,20 +1,25 @@
-import { useAtomValue } from "jotai";
-import { open, save } from "@tauri-apps/api/dialog";
-import { tileConfigsAtom } from "../../../../atoms/tilesAtoms";
-import useTileSettings from "./useTileSettings";
 import KeyConfig from "./KeyConfig";
 
 const SettingsEncoder = ({ hardwareId }: { hardwareId: string }) => {
-  const { config, updateConfigKey } = useTileSettings(hardwareId);
-
   return (
-    <>
-      <span className="text-md font-medium opacity-50">Click Down</span>
-      <KeyConfig />
-      <span className="text-md font-medium opacity-50">Click Up</span>
-      <span className="text-md font-medium opacity-50">Rotate Right</span>
-      <span className="text-md font-medium opacity-50">Rotate Left</span>
-    </>
+    <div className="flex flex-col gap-8 py-8 w-full items-center">
+      <div className="flex flex-col gap-4">
+        <span className="font-medium opacity-50">Click Down</span>
+        <KeyConfig hardwareId={hardwareId} action="down" />
+      </div>
+      <div className="flex flex-col gap-4">
+        <span className="font-medium opacity-50">Click Up</span>
+        <KeyConfig hardwareId={hardwareId} action="up" />
+      </div>
+      <div className="flex flex-col gap-4">
+        <span className="font-medium opacity-50">Rotate Right</span>
+        <KeyConfig hardwareId={hardwareId} action="right" />
+      </div>
+      <div className="flex flex-col gap-4">
+        <span className="font-medium opacity-50">Rotate Left</span>
+        <KeyConfig hardwareId={hardwareId} action="left" />
+      </div>
+    </div>
   );
 };
 

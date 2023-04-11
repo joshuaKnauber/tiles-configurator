@@ -5,6 +5,7 @@ import DebugOverlay from "./components/DebugOverlay";
 import TablesOverlay from "./components/TablesOverlay";
 import { useState } from "react";
 import TileView from "./components/TileView";
+import KeyConfig from "./components/TileSettings/KeyConfig";
 
 const Overview = () => {
   const activeCore = useAtomValue(activeCoreAtom);

@@ -7,7 +7,6 @@ export const tileGridAtom = atom((get) => {
   const neighbours = JSON.parse(
     JSON.stringify(get(neighbourAtom))
   ) as NeighbourTable;
-  console.log("JIFJPOEKFPKS", neighbours);
   if (!neighbours["1"]) return [];
   let grid: number[][] = [[]];
 
@@ -137,15 +136,10 @@ export const tileGridAtom = atom((get) => {
 
   // top, right, bottom, left
   // while (Object.keys(neighbours).length > 0) {
-  console.log("Jfeosjfesjp");
-  console.log({ ...neighbours });
   for (let parent of Object.keys(neighbours)
     .map((n) => parseInt(n))
     .sort()) {
-    console.log(parent);
-    let parentNeighbours = neighbours[parent].map((n) =>
-      parseInt(n)
-    ) as NeighbourIds;
+    let parentNeighbours = neighbours[parent] as NeighbourIds;
     let [top, right, bottom, left] = rotateNeighboursToMatch(
       parent,
       parentNeighbours
@@ -153,6 +147,5 @@ export const tileGridAtom = atom((get) => {
     addNeighboursToGrid(parent, bottom, top, left, right);
   }
   // }
-  console.log(grid);
   return grid;
 });

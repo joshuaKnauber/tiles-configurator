@@ -1,21 +1,29 @@
 import { ChevronLeftIcon } from "@heroicons/react/24/solid";
 import { useAtomValue } from "jotai";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { invertedRoutingTableAtom } from "../../atoms/routingTableAtoms";
 import { tileConfigsAtom, tileTypesPretty } from "../../atoms/tilesAtoms";
 import SettingsEncoder from "./components/TileSettings/SettingsEncoder";
+import SettingsButtons from "./components/TileSettings/SettingsButtons";
+import { useEffect } from "react";
 
 const Tile = () => {
   const { id } = useParams<{ id: string }>();
   const invertedRoutingTable = useAtomValue(invertedRoutingTableAtom);
   const tiles = useAtomValue(tileConfigsAtom);
 
-  const hardwareId = id
-    ? invertedRoutingTable[parseInt(id)] || undefined
-    : undefined;
+  const navigate = useNavigate();
+
+  const hardwareId = id ? invertedRoutingTable[id] || undefined : undefined;
 
   const tileType = hardwareId ? tiles[hardwareId]?.type || 0 : 0;
   const typeName = tileTypesPretty[tileType] || "Tile";
+
+  useEffect(() => {
+    if (id && !invertedRoutingTable[id]) {
+      navigate("/");
+    }
+  }, [id, invertedRoutingTable]);
 
   return (
     <div className="flex-grow h-full flex flex-col divide-y-2 divide-zinc-800">
@@ -31,8 +39,14 @@ const Tile = () => {
         </Link>
       </div>
       {hardwareId && (
-        <div className="flex-grow flex flex-col px-4">
-          {tileType === 1 && <SettingsEncoder hardwareId={hardwareId} />}
+        <div className="flex-grow overflow-y-auto">
+          <div className="overflow-y-auto h-full">
+            {tileType === 1 ? (
+              <SettingsEncoder hardwareId={hardwareId} />
+            ) : tileType === 2 ? (
+              <SettingsButtons hardwareId={hardwareId} />
+            ) : null}
+          </div>
         </div>
       )}
     </div>

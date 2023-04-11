@@ -42,6 +42,27 @@ body {
   background-size: 2rem 2rem;
 }
 
+.key-config-input input {
+  height: 1.5rem;
+  border-radius: 0px;
+  background-color: transparent;
+  outline: none;
+  border: none;
+  font-size: 1rem;
+  line-height: 1rem;
+}
+.key-config-input ul {
+  margin-top: 0.5rem;
+  background-color: rgb(39, 39, 42);
+  border: none;
+  font-size: 1rem;
+  max-height: 15rem;
+  overflow: auto;
+}
+.key-config-input mark {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }

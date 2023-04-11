@@ -21,7 +21,7 @@ const Tile = ({ id }: TileProps) => {
   const tiles = useAtomValue(tileConfigsAtom);
   const devMode = useAtomValue(devModeAtom);
 
-  const hardwareId = invertedRoutingTable[id];
+  const hardwareId = invertedRoutingTable[id.toString()];
   const tileType = tiles[hardwareId]?.type || 0;
 
   // encoder tile state
