@@ -287,7 +287,7 @@ fn process_hardware_report(window: Window, pid: u16, vid: u16, network_id: u8, p
     println!("hardware id: {}", hardware_id);
     println!("tile type: {}", tile_type);
 
-    if hardware_id == "0.0.0.0" {
+    if hardware_id == "0.0.0.0" || hardware_id == "255.255.255.255" {
         println!("hardware id is 0");
         let mut rng = rand::thread_rng();
         send_data_packet(pid, vid, 187, network_id, &[rng.gen::<u8>(), rng.gen::<u8>(), rng.gen::<u8>(), rng.gen::<u8>()])
